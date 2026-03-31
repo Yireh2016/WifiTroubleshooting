@@ -120,7 +120,7 @@ Build bottom-up: data layer first (RAG pipeline), then state/prompts, then agent
 
 ## Phase 1: Project Scaffolding
 
-**Status**: [ ] Not Started | [ ] In Progress | [ ] Complete  
+**Status**: [x] Complete  
 **Depends On**: None  
 **Blocks**: Phase 2, Phase 3
 
@@ -132,7 +132,7 @@ Create the monorepo folder structure, move the PDF, set up environment config, .
 
 #### 1. Create folder structure
 
-- [ ] **Action**: Create all directories per spec
+- [x] **Action**: Create all directories per spec
 
 ```bash
 # From repo root
@@ -143,12 +143,12 @@ mkdir -p chroma_db/v1
 
 #### 2. Move PDF to correct location
 
-- [ ] **File**: `shared/data/user_guide_EA6350.pdf`
+- [x] **File**: `shared/data/user_guide_EA6350.pdf`
   - **Changes**: Move from `src/shared/data/user_guide_EA6350.pdf` to `shared/data/user_guide_EA6350.pdf`. Remove `src/` directory.
 
 #### 3. Create .env.example
 
-- [ ] **File**: `.env.example`
+- [x] **File**: `.env.example`
   - **Changes**: Create with all documented env vars
 
 ```ini
@@ -162,7 +162,7 @@ LANGCHAIN_API_KEY=
 
 #### 4. Create .gitignore
 
-- [ ] **File**: `.gitignore`
+- [x] **File**: `.gitignore`
   - **Changes**: Create with required exclusions
 
 ```
@@ -175,7 +175,7 @@ __pycache__/
 
 #### 5. Create V1 requirements.txt
 
-- [ ] **File**: `agents/v1/requirements.txt`
+- [x] **File**: `agents/v1/requirements.txt`
   - **Changes**: Create with pinned V1 dependencies
 
 ```
@@ -194,23 +194,23 @@ openai>=1.0
 
 #### 6. Create shared __init__.py files
 
-- [ ] **Files**: `shared/__init__.py`, `shared/rag/__init__.py`, `shared/state/__init__.py`, `shared/prompts/__init__.py`
+- [x] **Files**: `shared/__init__.py`, `shared/rag/__init__.py`, `shared/state/__init__.py`, `shared/prompts/__init__.py`
   - **Changes**: Empty init files for Python package resolution
 
 ### Success Criteria:
 
 #### Automated Verification (Gates):
 
-- [ ] `ls shared/data/user_guide_EA6350.pdf` succeeds
-- [ ] `ls agents/v1/requirements.txt` succeeds
-- [ ] `ls .env.example` succeeds
-- [ ] `cat .gitignore | grep chroma_db` succeeds
-- [ ] `pip install -r agents/v1/requirements.txt` succeeds without errors
-- [ ] `python -c "import shared"` succeeds from repo root
+- [x] `ls shared/data/user_guide_EA6350.pdf` succeeds
+- [x] `ls agents/v1/requirements.txt` succeeds
+- [x] `ls .env.example` succeeds
+- [x] `cat .gitignore | grep chroma_db` succeeds
+- [x] `pip install -r agents/v1/requirements.txt` succeeds without errors
+- [x] `python -c "import shared"` succeeds from repo root
 
 #### Manual Verification:
 
-- [ ] Folder structure matches spec.md monorepo layout
+- [x] Folder structure matches spec.md monorepo layout
 
 ---
 
