@@ -8,11 +8,10 @@ class ConversationState(BaseModel):
     messages: Annotated[list[BaseMessage], add_messages] = Field(default_factory=list)
     reboot_appropriate: Optional[bool] = None
     issue_resolved: Optional[bool] = None
-    current_step: int = 0
-    current_node: str = "qualify"
+    next_node: str = "not_started"
+    last_executed_node: str = "qualify"
     rag_context: Optional[str] = None
     exit_reason: Optional[str] = None
-    rag_context: str
 
     class Config:
         arbitrary_types_allowed = True

@@ -45,20 +45,20 @@ def test_graph_compiles():
         return False
 
 def test_graph_structure():
-    """Test 3: Graph has 7 nodes and correct edge structure."""
+    """Test 3: Graph has 8 nodes and correct edge structure."""
     try:
         graph = build_graph()
         nodes = list(graph.nodes.keys())
         expected_nodes = {
-            "router", "qualify", "graceful_exit", "guide_reboot", "check_resolution",
+            "router", "qualify", "graceful_exit", "guide_reboot", "retrieval", "check_resolution",
             "close_success", "apologize_and_exit"
         }
 
-        if set(nodes) == expected_nodes and len(nodes) == 7:
-            print(f"✓ Test 3 PASSED: Graph has 7 nodes: {sorted(nodes)}")
+        if set(nodes) == expected_nodes and len(nodes) == 8:
+            print(f"✓ Test 3 PASSED: Graph has 8 nodes: {sorted(nodes)}")
             return True
         else:
-            print(f"✗ Test 3 FAILED: Expected 7 nodes {expected_nodes}, got {set(nodes)}")
+            print(f"✗ Test 3 FAILED: Expected 8 nodes {expected_nodes}, got {set(nodes)}")
             return False
     except Exception as e:
         print(f"✗ Test 3 FAILED: Structure check error: {e}")
@@ -91,15 +91,15 @@ def test_routing_logic():
 
         state_entry2 = ConversationState(
             messages=[HumanMessage(content="test")],
-            reboot_appropriate=True, current_step=2
+            reboot_appropriate=True, next_node="guide_reboot"
         )
-        assert route_entry(state_entry2) == "guide_reboot", "Entry should route to guide_reboot mid-steps"
+        assert route_entry(state_entry2) == "guide_reboot", "Entry should route to guide_reboot when in progress"
 
         state_entry3 = ConversationState(
             messages=[HumanMessage(content="test")],
-            reboot_appropriate=True, current_step=4, issue_resolved=None
+            reboot_appropriate=True, next_node="check_resolution", issue_resolved=None
         )
-        assert route_entry(state_entry3) == "check_resolution", "Entry should route to check_resolution after steps done"
+        assert route_entry(state_entry3) == "check_resolution", "Entry should route to check_resolution when done with reboot"
 
         # Test route_after_qualify
         state1 = ConversationState(
@@ -112,7 +112,7 @@ def test_routing_logic():
             messages=[HumanMessage(content="test")],
             reboot_appropriate=True
         )
-        assert route_after_qualify(state2) == "guide_reboot", "Should go to confirm on True"
+        assert route_after_qualify(state2) == "retrieval", "Should go to retrieval on True"
 
         state3 = ConversationState(
             messages=[HumanMessage(content="test")],
@@ -124,15 +124,15 @@ def test_routing_logic():
         # Test route_after_guide
         state4 = ConversationState(
             messages=[AIMessage(content="step 1")],
-            current_step=2
+            next_node="guide_reboot"
         )
-        assert route_after_guide(state4) == "__end__", "Should end (wait for user) at step 2"
+        assert route_after_guide(state4) == "__end__", "Should end (wait for user) while still guiding"
 
         state5 = ConversationState(
-            messages=[AIMessage(content="step 4")],
-            current_step=4
+            messages=[AIMessage(content="all steps done")],
+            next_node="check_resolution"
         )
-        assert route_after_guide(state5) == "check_resolution", "Should move to check at step 4"
+        assert route_after_guide(state5) == "check_resolution", "Should move to check when all steps done"
 
         # Test route_after_check
         state6 = ConversationState(

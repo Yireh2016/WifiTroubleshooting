@@ -64,15 +64,15 @@ def run_scenario(scenario_name, user_messages, expected_terminal_node=None):
 
         # Check final node
         if expected_terminal_node:
-            current_node = state.get("current_node", "")
-            if current_node == expected_terminal_node:
+            last_executed_node = state.get("last_executed_node", "")
+            if last_executed_node == expected_terminal_node:
                 print(f"\n✓ PASS: Ended at {expected_terminal_node}")
                 return True
             else:
-                print(f"\n✗ FAIL: Expected {expected_terminal_node}, got {current_node}")
+                print(f"\n✗ FAIL: Expected {expected_terminal_node}, got {last_executed_node}")
                 return False
         else:
-            print(f"\n✓ PASS: Conversation completed (final node: {state.get('current_node', 'unknown')})")
+            print(f"\n✓ PASS: Conversation completed (final node: {state.get('last_executed_node', 'unknown')})")
             return True
 
     except Exception as e:

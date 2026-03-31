@@ -68,7 +68,7 @@ def qualify(state: ConversationState) -> dict:
 def graceful_exit(state: ConversationState) -> dict:
     prompt = GRACEFUL_EXIT_PROMPT.format(exit_reason=state.exit_reason or "unknown")
     result = _call_llm(state.messages, prompt)
-    return {"messages": [AIMessage(content=result["reply"])], "current_node": "graceful_exit"}
+    return {"messages": [AIMessage(content=result["reply"])], "last_executed_node": "graceful_exit"}
 
 def retrieval(state: ConversationState) ->dict:
     # Retrieve RAG context once, cache in state
@@ -86,27 +86,25 @@ def retrieval(state: ConversationState) ->dict:
                 "Please refer to your router's manual for reboot instructions, "
                 "or visit Linksys.com/support/EA6350 for help."
             ))],
-            "current_node": "apologize_and_exit",
+            "last_executed_node": "apologize_and_exit",
         }
     return {
-        "rag_context": rag_context
+        "rag_context": rag_context,
+        "next_node": "guide_reboot",
     }
 
 def guide_reboot(state: ConversationState) -> dict:
-   
     prompt = GUIDE_REBOOT_PROMPT.format(
         rag_context=state.rag_context,
-        current_step=state.current_step,
     )
     result = _call_llm(state.messages, prompt)
 
     updates = {
         "messages": [AIMessage(content=result["reply"])],
-        "rag_context": state.rag_context,
-        "current_node": "guide_reboot",
+        "last_executed_node": "guide_reboot",
     }
-    if result.get("step_complete"):
-        updates["current_step"] = state.current_step + 1
+    if result.get("all_steps_done"):
+        updates["next_node"] = "check_resolution"
 
     return updates
 
@@ -114,7 +112,7 @@ def check_resolution(state: ConversationState) -> dict:
     result = _call_llm(state.messages, CHECK_RESOLUTION_PROMPT)
     updates = {
         "messages": [AIMessage(content=result["reply"])],
-        "current_node": "check_resolution",
+        "last_executed_node": "check_resolution",
     }
     if result.get("resolved") is True:
         updates["issue_resolved"] = True
@@ -125,11 +123,11 @@ def check_resolution(state: ConversationState) -> dict:
 
 def close_success(state: ConversationState) -> dict:
     result = _call_llm(state.messages, CLOSE_SUCCESS_PROMPT)
-    return {"messages": [AIMessage(content=result["reply"])], "current_node": "close_success"}
+    return {"messages": [AIMessage(content=result["reply"])], "last_executed_node": "close_success"}
 
 def apologize_and_exit(state: ConversationState) -> dict:
     result = _call_llm(state.messages, APOLOGIZE_EXIT_PROMPT)
-    return {"messages": [AIMessage(content=result["reply"])], "current_node": "apologize_and_exit"}
+    return {"messages": [AIMessage(content=result["reply"])], "last_executed_node": "apologize_and_exit"}
 
 # --- Routing Functions ---
 
@@ -138,9 +136,11 @@ def route_entry(state: ConversationState) -> str:
     Called on every graph invocation to resume at the right point."""
     if state.reboot_appropriate is None:
         return "qualify"
-    if state.reboot_appropriate and state.current_step < 4:
+    if state.reboot_appropriate and state.next_node == "not_started":
+        return "retrieval"
+    if state.next_node == "guide_reboot":
         return "guide_reboot"
-    if state.current_step >= 4 and state.issue_resolved is None:
+    if state.next_node == "check_resolution" and state.issue_resolved is None:
         return "check_resolution"
     # Fallback (shouldn't happen in normal flow)
     return "qualify"
@@ -153,7 +153,7 @@ def route_after_qualify(state: ConversationState) -> str:
     return "graceful_exit"
 
 def route_after_guide(state: ConversationState) -> str:
-    if state.current_step >= 4:
+    if state.next_node == "check_resolution":
         return "check_resolution"
     return END  # Return to user to confirm step
 

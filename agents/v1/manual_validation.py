@@ -23,10 +23,10 @@ def print_section(title):
 def print_state(state: ConversationState, label="State"):
     """Pretty print state for inspection."""
     print(f"\n{label}:")
-    print(f"  current_node: {state.current_node}")
+    print(f"  last_executed_node: {state.last_executed_node}")
     print(f"  reboot_appropriate: {state.reboot_appropriate}")
     print(f"  exit_reason: {state.exit_reason}")
-    print(f"  current_step: {state.current_step}")
+    print(f"  next_node: {state.next_node}")
     print(f"  issue_resolved: {state.issue_resolved}")
     print(f"  rag_context: {'<cached>' if state.rag_context else 'None'}")
     print(f"  messages: {len(state.messages)} messages")
@@ -83,7 +83,7 @@ def test_routing_scenarios():
                 reboot_appropriate=True
             ),
             "router": route_after_qualify,
-            "expected": "guide_reboot",
+            "expected": "retrieval",
         },
         {
             "name": "Qualify: Single device (exit)",
@@ -96,19 +96,19 @@ def test_routing_scenarios():
             "expected": "graceful_exit",
         },
         {
-            "name": "Guide: Mid-reboot (step 2)",
+            "name": "Guide: Mid-reboot (guiding)",
             "state": ConversationState(
                 messages=[AIMessage(content="step 1 done")],
-                current_step=2
+                next_node="guide_reboot"
             ),
             "router": route_after_guide,
-            "expected": "guide_reboot",
+            "expected": "__end__",
         },
         {
-            "name": "Guide: All steps done (step 4)",
+            "name": "Guide: All steps done",
             "state": ConversationState(
                 messages=[AIMessage(content="all steps done")],
-                current_step=4
+                next_node="check_resolution"
             ),
             "router": route_after_guide,
             "expected": "check_resolution",
@@ -219,7 +219,7 @@ def test_terminal_states():
             "final_node": "close_success",
             "state": ConversationState(
                 issue_resolved=True,
-                current_step=4
+                next_node="check_resolution"
             ),
         },
         {
@@ -227,7 +227,7 @@ def test_terminal_states():
             "final_node": "apologize_and_exit",
             "state": ConversationState(
                 issue_resolved=False,
-                current_step=4
+                next_node="check_resolution"
             ),
         },
     ]

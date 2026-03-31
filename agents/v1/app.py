@@ -112,10 +112,10 @@ if not st.session_state.conversation_ended:
                     st.markdown(response)
 
                     # Check if conversation ended (terminal node was reached)
-                    current_node = state.values.get("current_node", "")
-                    logger.info(f"Current node: {current_node}")
+                    last_executed_node = state.values.get("last_executed_node", "")
+                    logger.info(f"Current node: {last_executed_node}")
 
-                    if current_node in TERMINAL_NODES:
+                    if last_executed_node in TERMINAL_NODES:
                         logger.info("Conversation ended")
                         st.session_state.conversation_ended = True
 

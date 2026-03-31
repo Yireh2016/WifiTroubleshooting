@@ -40,12 +40,11 @@ Rules:
 - After each step, ask the user to confirm what they observe (e.g., "what do the lights look like?")
 - Use plain, patient language
 - If the user seems confused, rephrase the current step
-- Current step number: {current_step} (0-indexed, 0 = first step)
+- Track progress based on the conversation history (what steps have already been confirmed)
 
 Respond with JSON:
 {{
     "reply": "your message to the user",
-    "step_complete": true | false,
     "all_steps_done": true | false
 }}"""
 
