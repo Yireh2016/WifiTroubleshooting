@@ -12,6 +12,7 @@ class ConversationState(BaseModel):
     current_node: str = "qualify"
     rag_context: Optional[str] = None
     exit_reason: Optional[str] = None
+    rag_context: str
 
     class Config:
         arbitrary_types_allowed = True

@@ -36,7 +36,6 @@ graph = StateGraph(ConversationState)
 # Add all nodes
 graph.add_node("qualify", qualify_node)
 graph.add_node("graceful_exit", graceful_exit_node)
-graph.add_node("pre_reboot_confirm", pre_reboot_confirm_node)
 graph.add_node("guide_reboot", guide_reboot_node)
 graph.add_node("check_resolution", check_resolution_node)
 graph.add_node("close_success", close_success_node)
@@ -48,7 +47,7 @@ graph.add_conditional_edges(
     "qualify",
     route_after_qualify,  # function that returns a string
     {
-        "pre_reboot_confirm": "pre_reboot_confirm",
+        "guide_reboot": "guide_reboot",
         "graceful_exit": "graceful_exit",
     }
 )
@@ -69,7 +68,7 @@ def route_after_qualify(state: ConversationState) -> str:
     Return a string that maps to a node name in the path dict.
     Every possible return value must be covered or LangGraph raises KeyError.
     """
-    return "pre_reboot_confirm" if state.reboot_appropriate else "graceful_exit"
+    return "guide_reboot" if state.reboot_appropriate else "graceful_exit"
 ```
 
 ### Node Function Pattern
@@ -120,14 +119,14 @@ def route_after_qualify(state: ConversationState) -> str:
     if state.reboot_appropriate is None:
         return "qualify"
     # Once decided, route to next node
-    return "pre_reboot_confirm" if state.reboot_appropriate else "graceful_exit"
+    return "guide_reboot" if state.reboot_appropriate else "graceful_exit"
 
 graph.add_conditional_edges(
     "qualify",
     route_after_qualify,
     {
         "qualify": "qualify",  # Loop back
-        "pre_reboot_confirm": "pre_reboot_confirm",
+        "guide_reboot": "guide_reboot",
         "graceful_exit": "graceful_exit",
     }
 )
