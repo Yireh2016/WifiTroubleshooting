@@ -6,15 +6,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **RouteThis WiFi Assistant** is a conversational AI that guides users through WiFi troubleshooting using a Linksys EA6350 router manual as the source of truth. It qualifies issues through guided questions, retrieves reboot steps via RAG (Retrieval-Augmented Generation), and directs users through physical reboot steps.
 
-**Current Status:** V1 MVP is in development (Phase 5: Streamlit UI, with Phase 4 agent logic in progress).
+**Current Status:** V1 MVP complete (Streamlit UI + agent logic). V2 multi-router design in progress.
 
 ## Architecture
 
 ### Multi-Agent Pattern
 The repo follows a **versioned agent architecture** where each agent version (V1, V2, V3) is independent:
-- **V1 (MVP):** Core qualification + physical reboot guidance
-- **V2 (Enhanced):** TBD — app reboot method, literacy detection, mode switching
-- **V3 (Production):** TBD — multi-router support, evaluation pipeline, guardrails
+- **V1 (MVP):** Core qualification + physical reboot guidance for Linksys EA6350 (frozen, complete)
+- **V2 (Enhanced):** Multi-router support (Archer C1200, Netgear WNR854T), app/browser reboot, literacy detection, LLM-driven routing
+- **V3 (Production):** Evaluation pipeline, guardrails, structured logging, human escalation
 
 Each agent:
 - Lives in its own `agents/vN/` folder
@@ -29,7 +29,10 @@ Code reused across agents lives in `shared/`:
 - **`shared/rag/`** — PDF ingestion (LLM-based segmentation), retrieval, verification
 - **`shared/state/`** — Pydantic state schemas (ConversationState with message history, router state, exit reasons)
 - **`shared/prompts/`** — Prompt templates for each agent node, injected with dynamic context (RAG results, step numbers, etc.)
-- **`shared/data/`** — User guide PDF (single source of truth)
+- **`shared/data/`** — User guide PDFs (single source of truth)
+  - `user_guide_EA6350.pdf` — Linksys EA6350 (V1)
+  - `Archer_C1200(US)_V1_UG.pdf` — TP-Link Archer C1200 (V2)
+  - `wnr854t_setup_manual.pdf` — Netgear WNR854T (V2)
 
 ### Data Flow: RAG Pipeline
 1. **Ingest** (`shared/rag/ingest_v1.py`): PDF → English text (page filter) → LLM segmentation → vector embeddings → Chroma store
@@ -53,7 +56,7 @@ The agent is a directed graph with 7 nodes and conditional routing:
 
 ### Setup
 ```bash
-# 1. Copy environment (edit with your OpenAI key, Langhmith)
+# 1. Copy environment (edit with your OpenAI key and LangSmith token if using tracing)
 cp .env.example .env
 
 # 2. Install dependencies
@@ -69,16 +72,19 @@ streamlit run agents/v1/app.py
 **Requirements:** Python 3.9+, OpenAI API key (sk-...)
 
 ### Running Tests
-Tests are standalone Python scripts (not pytest-based):
+Tests are pytest-based and can also be run as standalone scripts:
 
 ```bash
-# Test graph construction and routing logic
-python agents/v1/test_graph.py
+# Run all V1 tests with pytest
+pytest agents/v1/ -v
 
-# Manual validation of agent behavior (conversation scenarios)
-python agents/v1/test_app_manual.py
+# Or run individual test modules
+python agents/v1/test_graph.py          # Graph construction and routing
+python agents/v1/test_scenarios.py      # End-to-end conversation scenarios
+python agents/v1/test_nodes.py          # Individual node functions
+python agents/v1/test_rag_integration.py # RAG retrieval integration
 
-# Verify RAG retrieval (after ingest)
+# Verify RAG retrieval and Chroma connectivity (after ingest)
 python shared/rag/verify_retrieval.py
 ```
 
@@ -89,11 +95,14 @@ All tests should pass with exit code 0.
 | Directory | Purpose |
 |-----------|---------|
 | `agents/v1/` | V1 agent — app.py (Streamlit UI), graph.py (state machine), nodes.py (node functions) |
+| `agents/v1/specs/` | V1 specifications — spec.md, implementation-plan.md, research.md |
+| `agents/v2/` | V2 agent code (in development) |
+| `agents/v2/` (specs) | V2 specifications — spec.md, implementation-plan.md, research.md |
 | `shared/rag/` | PDF ingest, retrieval, verification — imported by all agent versions |
 | `shared/state/` | State schema (Pydantic) — defines ConversationState |
 | `shared/prompts/` | Prompt templates — injected with RAG context, step numbers, exit reasons |
-| `shared/data/` | User guide PDF — single source of truth |
-| `chroma_db/` | Vector store (created after ingest) — persisted between sessions |
+| `shared/data/` | User guide PDFs (V1: EA6350, V2: Archer C1200 + Netgear WNR854T) |
+| `chroma_db/` | Vector stores (v1/, v2/) — persisted between sessions |
 | `.claude/` | Claude Code config, custom skills |
 
 ## Important Patterns & Decisions
@@ -151,18 +160,23 @@ Only English pages (0–17) are ingested. Pages 18+ are other languages. This is
 
 ## Development Workflow
 
-1. **Before modifying:** Read the spec.md and implementation-plan.md to understand design constraints
-2. **When adding features:** Keep them in agent version folders; only add to `shared/` if truly reusable
+1. **Before modifying:** Read the relevant version's spec and implementation-plan (e.g., `agents/v1/specs/spec.md` for V1 changes, `agents/v2/spec.md` for V2)
+2. **When adding features:** Keep them in agent version folders; only add to `shared/` if truly reusable across versions
 3. **When changing shared code:** Test with all agent versions that depend on it
 4. **When adding prompts:** Remember JSON output format requires prompt to mention "JSON"
-5. **When debugging:** Run tests first (`test_graph.py`), then manual validation, then Streamlit app
+5. **When debugging:** Run tests first (`pytest agents/v1/ -v`), then manual validation, then Streamlit app
 6. **Before committing:** Ensure all tests pass and Chroma vector store is clean (run ingest if adding PDF sections)
 
 ## External Resources
 
-- **Implementation Plan:** `implementation-plan.md` — phased development strategy and current progress
-- **Technical Spec:** `spec.md` — full system design, conversation flows, version scope
-- **Research Notes:** `research.md` — PDF analysis and design decisions
+- **V1 Specifications:**
+  - **Implementation Plan:** `agents/v1/specs/implementation-plan.md`
+  - **Technical Spec:** `agents/v1/specs/spec.md`
+  - **Research Notes:** `agents/v1/specs/research.md`
+- **V2 Specifications:**
+  - **Implementation Plan:** `agents/v2/implementation-plan.md`
+  - **Technical Spec:** `agents/v2/spec.md`
+  - **Research Notes:** `agents/v2/research.md`
 - **OpenAI API Docs:** Structured outputs require `response_format={"type": "json_object"}`
 - **LangGraph Docs:** State machine pattern, node routing, message persistence
 - **Chroma Docs:** Vector store setup, filtering syntax
