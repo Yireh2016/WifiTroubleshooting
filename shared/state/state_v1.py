@@ -1,10 +1,12 @@
 from typing import Optional, Annotated
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from langgraph.graph import add_messages
 from langchain_core.messages import BaseMessage
 
 
 class ConversationState(BaseModel):
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
     messages: Annotated[list[BaseMessage], add_messages] = Field(default_factory=list)
     reboot_appropriate: Optional[bool] = None
     issue_resolved: Optional[bool] = None
@@ -12,6 +14,3 @@ class ConversationState(BaseModel):
     last_executed_node: str = "qualify"
     rag_context: Optional[str] = None
     exit_reason: Optional[str] = None
-
-    class Config:
-        arbitrary_types_allowed = True
