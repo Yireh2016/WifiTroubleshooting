@@ -29,7 +29,7 @@ st.set_page_config(
 
 st.title("WiFi Troubleshooting Assistant")
 
-TERMINAL_NODES = ("graceful_exit", "close_success", "apologize_and_exit")
+TERMINAL_NODES = ("graceful_exit", "close_success", "apologize_and_exit", "escalation_notice")
 
 # Initialize session state
 if "thread_id" not in st.session_state:
@@ -109,6 +109,14 @@ if not st.session_state.conversation_ended:
 
                     logger.info(f"Response: {response[:100]}")
                     st.markdown(response)
+
+                    # Check if escalation was triggered
+                    escalation_triggered = state.values.get("escalation_triggered", False)
+                    if escalation_triggered:
+                        st.warning(
+                            "🔔 **Escalation Notice**: Your request has been escalated to our support team. "
+                            "They will follow up with you shortly."
+                        )
 
                     # Check if conversation ended (terminal node was reached)
                     last_executed_node = state.values.get("last_executed_node", "")
