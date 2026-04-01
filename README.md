@@ -36,14 +36,20 @@
   - Designed to force JSON output via OpenAI's `response_format`
 
 - **`shared/data/`** — User guide PDFs (single source of truth)
-  - `user_guide_EA6350.pdf` — Linksys EA6350 English manual (pages 0–17)
+  - `user_guide_EA6350.pdf` — Linksys EA6350 English manual (pages 0–17) [V1]
+  - `Archer_C1200(US)_V1_UG.pdf` — TP-Link Archer C1200 English manual [V2]
+  - `wnr854t_setup_manual.pdf` — Netgear WNR854T English manual [V2]
 
 ### Documentation & Testing
 
-- **`spec.md`** — Full system design, conversation flows, Definition of Done for each version, README specs
 - **`CLAUDE.md`** — Development workflow, patterns, debugging tips
-- **`implementation-plan.md`** — Phased development strategy and progress tracker
-- **`research.md`** — PDF analysis and design rationale
+- **Version-specific docs:**
+  - **`agents/v1/specs/spec.md`** — V1 system design, conversation flows, Definition of Done
+  - **`agents/v1/specs/implementation-plan.md`** — V1 development strategy and progress
+  - **`agents/v1/specs/research.md`** — V1 PDF analysis and design rationale
+  - **`agents/v2/spec.md`** — V2 multi-model architecture and enhanced features
+  - **`agents/v2/implementation-plan.md`** — V2 phased development plan
+  - **`agents/v2/research.md`** — V2 multi-router design analysis
 - **`agents/v1/test_*.py`** — Unit and integration tests (8 end-to-end scenarios)
 - **`.claude/`** — Claude Code config and custom skills
 
@@ -203,15 +209,17 @@ V1 and V2 use different ingest pipelines (page range vs per-page language detect
 
 ## Future Work
 
-### V2 — Enhanced Experience
+### V2 — Enhanced Experience (In Design)
 
+- **Multi-router support:** Archer C1200, Netgear WNR854T (added to shared/data/)
 - **App/browser reboot method** with connectivity-aware gating (only offer if router has WAN)
 - **Multi-language support** via per-page language detection (`langdetect`)
 - **Literacy detection** from opening message (self-serve vs agent-assisted mode)
+- **Router discovery flow** via LLM-driven routing decisions
 - **LangSmith tracing** for observability and debugging
-- Separate `chroma_db/v2/` store
+- Separate `chroma_db/v2/` store with metadata-based model filtering
 
-See `agents/v2/README.md` (future) for full scope.
+See `agents/v2/spec.md`, `implementation-plan.md`, and `research.md` for full design details.
 
 ### V3 — Production Readiness
 
@@ -291,7 +299,7 @@ grep -q "^chroma_db/$" .gitignore
 
 ## Development Workflow
 
-1. **Before modifying code:** Read `spec.md` and `implementation-plan.md` for design constraints
+1. **Before modifying code:** Read the relevant version's spec and implementation-plan (e.g., `agents/v1/specs/spec.md` for V1 changes)
 2. **When adding features:** Keep in agent version folders; only add to `shared/` if reusable across versions
 3. **When changing shared code:** Test with all agent versions that depend on it
 4. **When adding prompts:** Remember JSON output requires prompt to mention "JSON"
@@ -300,9 +308,14 @@ grep -q "^chroma_db/$" .gitignore
 
 ## External Resources
 
-- **Implementation Plan:** `implementation-plan.md` — phased development strategy and progress
-- **Technical Spec:** `spec.md` — full system design, conversation flows, version scope, README specs
-- **Research Notes:** `research.md` — PDF analysis and design rationale
+- **V1 Documentation:**
+  - **Implementation Plan:** `agents/v1/specs/implementation-plan.md`
+  - **Technical Spec:** `agents/v1/specs/spec.md`
+  - **Research Notes:** `agents/v1/specs/research.md`
+- **V2 Documentation:**
+  - **Implementation Plan:** `agents/v2/implementation-plan.md`
+  - **Technical Spec:** `agents/v2/spec.md`
+  - **Research Notes:** `agents/v2/research.md`
 - **OpenAI API:** [Structured outputs](https://platform.openai.com/docs/guides/structured-outputs) (response_format)
 - **LangGraph:** [Documentation](https://docs.langchain.com/oss/python/langgraph/)
 - **Chroma:** [Documentation](https://docs.trychroma.com/)
