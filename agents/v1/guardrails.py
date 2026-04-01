@@ -11,7 +11,7 @@ import json
 import os
 import sys
 from pathlib import Path
-from typing import Dict, Any, Optional, Tuple
+from typing import Optional, Tuple
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
@@ -151,7 +151,6 @@ Are there unsupported claims in the response?"""
             ])
             result = json.loads(response.content)
             has_hallucination = result.get("contains_hallucination", False)
-            unsupported = result.get("unsupported_claims", [])
             reason = result.get("reason", "")
 
             if has_hallucination:
@@ -283,7 +282,7 @@ class GuardrailsManager:
         if not self.enabled or not rag_context:
             return response, True
 
-        filtered, passed, reason = self.hallucination_filter.filter_response(
+        filtered, passed, _ = self.hallucination_filter.filter_response(
             response, rag_context, check_enabled=True
         )
         return filtered, passed
