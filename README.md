@@ -69,11 +69,13 @@ pip install -r agents/v1/requirements.txt
 # 3. Ingest the PDF into Chroma (one-time)
 python shared/rag/ingest_v1.py
 
-# 4. Verify RAG retrieval
+# 4. Verify RAG retrieval (optional)
 python shared/rag/verify_retrieval.py --version v1
+chroma run --path ./chroma_db/v1 # connect using chroma explorer at http://localhost:8000
 
 # 5. Run the agent
 streamlit run agents/v1/app.py
+
 ```
 
 Then visit `http://localhost:8501` and start a conversation:
