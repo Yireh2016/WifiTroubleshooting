@@ -1,4 +1,4 @@
-# RouteThis WiFi Assistant — Versioned Technical Spec
+# WifiTroubleshooting WiFi Assistant — Versioned Technical Spec
 
 ## Challenge Summary
 
@@ -6,8 +6,6 @@ Build a conversational LLM interface that assists users in solving WiFi
 connectivity problems through a guided router reboot, using the Linksys
 EA6350 user guide (`user_guide_EA6350.pdf`) as the source of truth for reboot steps.
 
-**Interview date:** Thursday, April 2nd, 10:30 AM — on-site, Kitchener
-**Deliverable:** Public GitHub repo + run instructions to kam.deep@routethis.com
 **Strategy:** Ship V1 first. It must be solid, runnable, and impressive on its
 own. V2 and V3 are additive — build them only if V1 is done and tested.
 Everything not built must be documented in the README to demonstrate
@@ -50,7 +48,7 @@ This structure means:
 ## Monorepo Folder Structure
 
 ```
-routethis-wifi-assistant/
+WifiTroubleshooting/
 │
 ├── README.md                        # Global readme — project overview,
 │                                    # versioning rationale, how to navigate
@@ -924,7 +922,7 @@ Covers the project as a whole. Audiences: anyone landing on the repo.
 
 **1. What this project is**
 One paragraph. A versioned AI support agent for WiFi troubleshooting,
-built as a take-home challenge for RouteThis. Three independently runnable
+built as a take-home challenge for WifiTroubleshooting. Three independently runnable
 agents of increasing capability.
 
 **2. How to navigate the repo**
@@ -1083,4 +1081,4 @@ Each agent has its own README. Audiences: the interviewer running the code.
 
 ---
 
-*Versioned spec for RouteThis take-home challenge. Updated March 2026.*
+*Versioned spec for WifiTroubleshooting take-home challenge. Updated March 2026.*

@@ -1,4 +1,4 @@
-# RouteThis V1 — Physical Reboot Agent
+# WifiTroubleshooting V1 — Physical Reboot Agent
 
 **Overview:** See the root [`README.md`](../../README.md) for project architecture, design decisions, testing strategy, and general setup.
 

@@ -1,8 +1,8 @@
-# RouteThis — Conversational WiFi Troubleshooting Agent
+# WifiTroubleshooting — Conversational WiFi Troubleshooting Agent
 
 ## What This Project Is
 
-**RouteThis** is a conversational AI that guides users through WiFi troubleshooting for their home routers, using manufacturer manuals as the source of truth. It qualifies whether an issue is appropriate for a physical reboot through guided questions, retrieves step-by-step reboot instructions via RAG (Retrieval-Augmented Generation), and walks users through each step with confirmations. The project is built as a versioned agent architecture with three independently runnable agents (V1, V2, V3) of increasing capability, allowing each version to be frozen and evaluated separately.
+**WifiTroubleshooting** is a conversational AI that guides users through WiFi troubleshooting for their home routers, using manufacturer manuals as the source of truth. It qualifies whether an issue is appropriate for a physical reboot through guided questions, retrieves step-by-step reboot instructions via RAG (Retrieval-Augmented Generation), and walks users through each step with confirmations. The project is built as a versioned agent architecture with three independently runnable agents (V1, V2, V3) of increasing capability, allowing each version to be frozen and evaluated separately.
 
 ## How to Navigate the Repo
 
@@ -59,9 +59,14 @@
 
 ```bash
 # 1. Clone and set up
-cd routeThis
+cd WifiTroubleshooting
 cp .env.example .env
 # Edit .env: add your OPENAI_API_KEY
+# LangSmith (optional)
+# LANGCHAIN_TRACING=true
+# LANGSMITH_ENDPOINT=https://<instance>.langchain.com
+# LANGCHAIN_API_KEY= <your_key>
+# LANGSMITH_PROJECT= <your_project>
 
 # 2. Install V1 dependencies
 pip install -r agents/v1/requirements.txt

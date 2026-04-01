@@ -1,4 +1,4 @@
-# RouteThis WiFi Assistant — Implementation Research
+# WifiTroubleshooting WiFi Assistant — Implementation Research
 
 **Date**: 2026-03-30  
 **Scope**: Research findings for V1, V2, V3 implementation strategy

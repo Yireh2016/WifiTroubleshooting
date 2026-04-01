@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**RouteThis WiFi Assistant** is a conversational AI that guides users through WiFi troubleshooting using a Linksys EA6350 router manual as the source of truth. It qualifies issues through guided questions, retrieves reboot steps via RAG (Retrieval-Augmented Generation), and directs users through physical reboot steps.
+**WifiTroubleshooting WiFi Assistant** is a conversational AI that guides users through WiFi troubleshooting using a Linksys EA6350 router manual as the source of truth. It qualifies issues through guided questions, retrieves reboot steps via RAG (Retrieval-Augmented Generation), and directs users through physical reboot steps.
 
 **Current Status:** V1 MVP complete (Streamlit UI + agent logic). V2 multi-router design in progress.
 

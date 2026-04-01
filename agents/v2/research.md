@@ -1,4 +1,4 @@
-# RouteThis V2 WiFi Assistant — Research & Design Analysis
+# WifiTroubleshooting V2 WiFi Assistant — Research & Design Analysis
 
 **Date**: 2026-04-01  
 **Status**: Production Research Document  

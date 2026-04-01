@@ -1,4 +1,4 @@
-# RouteThis WiFi Assistant — Implementation Plan
+# WifiTroubleshooting WiFi Assistant — Implementation Plan
 
 ## Overview
 
@@ -9,7 +9,7 @@ Build a conversational WiFi troubleshooting agent (V1 MVP) that qualifies user i
 
 ## Current State Analysis
 
-- **Repo:** `/Users/jainer/Documents/routeThis/` — mostly empty, only `src/shared/data/user_guide_EA6350.pdf` exists
+- **Repo:** `/Users/jainer/Documents/WifiTroubleshooting/` — mostly empty, only `src/shared/data/user_guide_EA6350.pdf` exists
 - **PDF:** 499 pages, multi-language. English pages 0-18, Spanish 19-38, then French, Danish, Ukrainian, etc.
 - **Reboot instructions:** Pages 15-16 contain both physical and app reboot methods
 - **No code exists yet** — building from scratch

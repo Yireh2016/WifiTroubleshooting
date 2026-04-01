@@ -125,7 +125,7 @@ Key design notes:
 
 **Verification steps:**
 ```bash
-cd /Users/jainer/Documents/routeThis
+cd /Users/jainer/Documents/WifiTroubleshooting
 python -c "
 from shared.state.state_v2 import ConversationState
 s = ConversationState()
@@ -247,7 +247,7 @@ Key differences from `ingest_v1.py`:
 
 **Verification steps:**
 ```bash
-cd /Users/jainer/Documents/routeThis
+cd /Users/jainer/Documents/WifiTroubleshooting
 
 # Step 1: Run ingest
 python shared/rag/ingest_v2.py \
@@ -464,7 +464,7 @@ Respond with JSON:
 
 **Verification steps:**
 ```bash
-cd /Users/jainer/Documents/routeThis
+cd /Users/jainer/Documents/WifiTroubleshooting
 
 python -c "
 from shared.prompts.v2_prompts import (
@@ -821,7 +821,7 @@ def route_after_check(state: ConversationState) -> str:
 
 **Verification steps:**
 ```bash
-cd /Users/jainer/Documents/routeThis
+cd /Users/jainer/Documents/WifiTroubleshooting
 
 python -c "
 from agents.v2.nodes import (
@@ -1014,7 +1014,7 @@ def compile_graph():
 
 **Verification steps:**
 ```bash
-cd /Users/jainer/Documents/routeThis
+cd /Users/jainer/Documents/WifiTroubleshooting
 
 python -c "
 from agents.v2.graph import build_graph, compile_graph
@@ -1151,7 +1151,7 @@ Key differences from V1 `app.py`:
 
 **Verification steps:**
 ```bash
-cd /Users/jainer/Documents/routeThis
+cd /Users/jainer/Documents/WifiTroubleshooting
 
 # Verify app imports without error
 python -c "
@@ -1364,7 +1364,7 @@ def test_reboot_not_resolved(patch_v2_llm, patch_v2_vectorstore):
 
 **Verification steps:**
 ```bash
-cd /Users/jainer/Documents/routeThis
+cd /Users/jainer/Documents/WifiTroubleshooting
 
 # Run all V2 tests
 pytest agents/v2/ -v --tb=short 2>&1 | tail -20
@@ -1459,7 +1459,7 @@ pytest-cov>=4.0
 
 **Verification steps:**
 ```bash
-cd /Users/jainer/Documents/routeThis
+cd /Users/jainer/Documents/WifiTroubleshooting
 
 # Verify files exist
 test -f agents/v2/README.md && echo "README: EXISTS" || echo "README: MISSING"
@@ -1497,7 +1497,7 @@ grep -q "Design Decisions" agents/v2/README.md && echo "Design section: PRESENT"
 Run this after all phases are complete to validate the full system:
 
 ```bash
-cd /Users/jainer/Documents/routeThis
+cd /Users/jainer/Documents/WifiTroubleshooting
 
 echo "=== Step 1: Verify V1 is untouched ==="
 python -c "
@@ -1564,8 +1564,8 @@ echo "=== All automated checks complete ==="
 ---
 
 ### Critical Files for Implementation
-- `/Users/jainer/Documents/routeThis/shared/state/state_v2.py`
-- `/Users/jainer/Documents/routeThis/shared/rag/ingest_v2.py`
-- `/Users/jainer/Documents/routeThis/shared/prompts/v2_prompts.py`
-- `/Users/jainer/Documents/routeThis/agents/v2/nodes.py`
-- `/Users/jainer/Documents/routeThis/agents/v2/graph.py`
+- `/Users/jainer/Documents/WifiTroubleshooting/shared/state/state_v2.py`
+- `/Users/jainer/Documents/WifiTroubleshooting/shared/rag/ingest_v2.py`
+- `/Users/jainer/Documents/WifiTroubleshooting/shared/prompts/v2_prompts.py`
+- `/Users/jainer/Documents/WifiTroubleshooting/agents/v2/nodes.py`
+- `/Users/jainer/Documents/WifiTroubleshooting/agents/v2/graph.py`
