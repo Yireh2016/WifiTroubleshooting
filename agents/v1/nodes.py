@@ -10,7 +10,7 @@ from langchain_openai import ChatOpenAI
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from shared.state.state_v1 import ConversationState
 from shared.prompts.base_prompts import (
-    SYSTEM_PROMPT, QUALIFY_PROMPT, GUIDE_REBOOT_PROMPT,
+    QUALIFY_PROMPT, GUIDE_REBOOT_PROMPT,
     CHECK_RESOLUTION_PROMPT, GRACEFUL_EXIT_PROMPT,
     CLOSE_SUCCESS_PROMPT, APOLOGIZE_EXIT_PROMPT,
 )
@@ -40,7 +40,6 @@ def _call_llm(messages: list, prompt: str) -> dict:
     llm = _get_llm()
     llm_messages = [
         SystemMessage(content=prompt),
-        # SystemMessage(content=SYSTEM_PROMPT),
         *messages,
     ]
     response = llm.invoke(llm_messages)
@@ -75,7 +74,7 @@ def retrieval(state: ConversationState) ->dict:
     rag_context = state.rag_context
     if rag_context is None:
         vs = _get_vectorstore()
-        results = retrieve(vs, "router reboot steps power cord disconnect")
+        results = retrieve(vectorstore=vs, query= "router reboot steps power cord disconnect",k=10)
         rag_context = results[0].page_content if results else None
 
     if rag_context is None:

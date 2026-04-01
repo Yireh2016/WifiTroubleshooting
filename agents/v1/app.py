@@ -28,7 +28,6 @@ st.set_page_config(
 )
 
 st.title("WiFi Troubleshooting Assistant")
-st.caption("Linksys EA6350 — Guided Router Reboot")
 
 TERMINAL_NODES = ("graceful_exit", "close_success", "apologize_and_exit")
 
@@ -51,7 +50,7 @@ config = {
 # Display welcome message
 if not st.session_state.messages:
     welcome = ("Hi! I'm your WiFi troubleshooting assistant. "
-               "I can help you diagnose and fix connectivity issues with your Linksys router. "
+               "I can help you diagnose and fix connectivity issues with your router. "
                "What's going on with your internet?")
     st.session_state.messages.append({"role": "assistant", "content": welcome})
 

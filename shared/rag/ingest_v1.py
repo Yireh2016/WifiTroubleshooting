@@ -33,19 +33,19 @@ def segment_document_with_llm(full_text: str, model_name: str) -> list[dict]:
     llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
     prompt = f"""You are parsing a router manual for the {model_name}.
 
-Identify the major sections and extract each one.
-Assign each section a tag from this fixed list ONLY: {CANONICAL_TAGS}
+            Identify the major sections and extract each one.
+            Assign each section a tag from this fixed list ONLY: {CANONICAL_TAGS}
 
-Return a JSON object with a "sections" key containing an array.
-Each item must have:
-- "section_title": the original heading as it appears in the document
-- "section_tag": one value from the fixed list above
-- "content": the complete text of that section
+            Return a JSON object with a "sections" key containing an array.
+            Each item must have:
+            - "section_title": the original heading as it appears in the document
+            - "section_tag": one value from the fixed list above
+            - "content": the complete text of that section
 
-Manual text:
-{full_text}
+            Manual text:
+            {full_text}
 
-Return ONLY valid JSON. No preamble, no markdown fences."""
+            Return ONLY valid JSON. No preamble, no markdown fences."""
 
     response = llm.invoke([{"role": "user", "content": prompt}])
     parsed = json.loads(response.content)

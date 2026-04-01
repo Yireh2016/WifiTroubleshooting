@@ -19,7 +19,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from shared.prompts.base_prompts import (
     QUALIFY_PROMPT, GUIDE_REBOOT_PROMPT, CHECK_RESOLUTION_PROMPT,
     GRACEFUL_EXIT_PROMPT, CLOSE_SUCCESS_PROMPT, APOLOGIZE_EXIT_PROMPT,
-    SYSTEM_PROMPT,
 )
 from agents.v1 import nodes
 
