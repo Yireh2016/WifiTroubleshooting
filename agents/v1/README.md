@@ -1,99 +1,86 @@
 # RouteThis V1 — Physical Reboot Agent
 
-## What This Version Does
+**Overview:** See the root [`README.md`](../../README.md) for project architecture, design decisions, testing strategy, and general setup.
 
-V1 is the MVP: a conversational WiFi troubleshooting agent that guides users through resolving connectivity issues with a Linksys EA6350 router. The agent qualifies whether the issue is appropriate for a physical reboot (all devices offline, no ISP outage, hasn't been rebooted excessively), retrieves step-by-step reboot instructions from the user manual via RAG, and walks the user through each step.
+This document covers **V1-specific implementation details**.
 
-**Scope:** Physical reboot only. No app-based reboot, no multi-router support, no authentication.
+## Graph Structure & Nodes
 
-## How to Run It
+V1's agent is a LangGraph state machine with 7 nodes:
 
-From the repo root:
+| Node | Input | Logic | Output |
+|------|-------|-------|--------|
+| **QUALIFY** | User message, conversation history | Ask qualification questions (all devices offline? ISP outage? already rebooted?) | `reboot_appropriate: bool` |
+| **GUIDE_REBOOT** | `reboot_appropriate=True` | Retrieve reboot steps (RAG) once, cache in state, show first step | `current_step=0`, `rag_context` |
+| **CONFIRM_STEP** | User message | Ask "did that step work?" → increment `current_step` | `current_step++` |
+| **CHECK_RESOLUTION** | After all steps | Ask "is WiFi back?" | `exit_reason: str` |
+| **CLOSE_SUCCESS** | Resolution confirmed | "Glad I could help!" | Exit gracefully |
+| **APOLOGIZE_AND_EXIT** | Resolution not confirmed | "Sorry I couldn't help, try contacting support." | Exit gracefully |
+| **GRACEFUL_EXIT** | Qualification fails | "This isn't a reboot situation — [reason]. Let me know if you need more help." | Exit gracefully |
+
+**Key routing:**
+- If `reboot_appropriate=False` → GRACEFUL_EXIT
+- If `reboot_appropriate=True` → GUIDE_REBOOT → loop CONFIRM_STEP → CHECK_RESOLUTION → CLOSE_SUCCESS or APOLOGIZE_AND_EXIT
+
+## State Schema
+
+V1 uses `shared/state/state_v1.py` (ConversationState):
+
+```python
+class ConversationState(TypedDict):
+    messages: Annotated[list[BaseMessage], add_messages]  # LangGraph auto-dedupes
+    reboot_appropriate: bool  # Qualification result
+    current_step: int  # 0-indexed; incremented after confirm
+    rag_context: str  # Retrieved reboot instructions (cached after first GUIDE_REBOOT)
+    exit_reason: str  # Why agent exited: "single_device", "isp_outage", "excessive_reboots", etc.
+```
+
+## Running V1
+
+From repo root:
 
 ```bash
-# 1. Set up environment (edit .env with your OpenAI API key)
-cp .env.example .env
-# Then add: OPENAI_API_KEY=sk-...
-
-# 2. Install dependencies
+cp .env.example .env       # Edit with OPENAI_API_KEY
 pip install -r agents/v1/requirements.txt
-
-# 3. Ingest PDF into Chroma vector store (one-time)
-python shared/rag/ingest_v1.py
-
-# 4. Verify RAG retrieval is working
-python shared/rag/verify_retrieval.py --version v1
-
-# 5. Run the Streamlit app
-streamlit run agents/v1/app.py
+python shared/rag/ingest_v1.py       # One-time: ingest PDF
+streamlit run agents/v1/app.py        # Then visit http://localhost:8501
 ```
 
-Then visit `http://localhost:8501` in your browser.
+See root `README.md` "Quickstart" for full setup with verification steps.
 
-## What's Reused from shared/
+## Prompt Templates
 
-- **`shared/rag/ingest_v1.py`** — PDF → sections → embeddings → Chroma store (`chroma_db/v1/`)
-- **`shared/rag/retriever.py`** — Retrieval logic with metadata filtering (model, language, section)
-- **`shared/state/state_v1.py`** — Pydantic state schema (ConversationState with message history, reboot_appropriate, current_step, rag_context, exit_reason)
-- **`shared/prompts/`** — Prompt templates for each node, injected with RAG context, step numbers, and exit reasons
-- **`shared/data/user_guide_EA6350.pdf`** — Single source of truth (pages 0–17, English only)
+All prompts live in `shared/prompts/` and are injected with:
+- `{rag_context}` — Retrieved reboot steps from Chroma
+- `{current_step}` — Step number to show user
+- `{exit_reason}` — Reason for graceful exit
+- `{reboot_appropriate}` — True/False qualification result
 
-## Design Decisions Specific to V1
+Each prompt must mention "JSON" in the text because nodes use `response_format={"type": "json_object"}` to force structured output.
 
-### Why physical reboot only?
-
-The Linksys Smart Wi-Fi app method requires the router to have an active WAN connection — Linksys's servers need to reach the router to issue the reboot command. In the primary use case (all devices offline), the router has no internet. Offering the app method there would be a dead end. V2 adds the app method with proper connectivity-aware gating.
-
-### Why single router model?
-
-Focusing on the Linksys EA6350 for V1 allows us to validate the entire end-to-end pipeline — ingest, retrieval, qualification, step-by-step guidance — with one well-known manual. Multi-router support (V3) requires an evaluation pipeline to ensure quality across models.
-
-### Why language filtering upfront?
-
-The EA6350 manual is 50% English, 50% Spanish. Without language filtering at ingest, retrieval can return Spanish steps and the agent responds in Spanish. Language filtering is the first step in the ingest pipeline — before sectioning — so only English content reaches the vector store.
-
-### Why LLM-based section detection?
-
-Each router manufacturer structures their manual differently. Hard-coding "Troubleshooting" breaks when you add a TP-Link manual. The ingest pipeline uses an LLM to map any manual's sections onto a fixed canonical taxonomy (`troubleshooting`, `setup`, `security`, etc.). Retrieval always queries by canonical tag — the agent and retrieval code never change when you add a new router model.
-
-### Why section-level storage instead of fixed-size chunking?
-
-Fixed-size chunking risks fragmenting numbered steps across chunk boundaries — retrieval returns steps 1–3 but not 4–5, or returns a step with no heading. Section-level storage keeps each complete procedure as one coherent unit. For a support agent giving accurate step-by-step instructions, fragmentation is a correctness issue, not a quality preference.
-
-### Why separate Chroma stores per version?
-
-V1 and V2 use different ingest pipelines (page range vs per-page language detection) and may produce different chunks. Separate stores at `chroma_db/v1/` and `chroma_db/v2/` prevent cross-version contamination.
-
-### Why RAG fires only in GUIDE_REBOOT?
-
-Qualification is pure conversational reasoning — the manual isn't needed to decide if all devices are offline. Firing retrieval on every qualifying exchange adds latency and cost with zero benefit. Context is retrieved once (in GUIDE_REBOOT), cached in state, and reused for all subsequent step-guidance messages.
-
-## Known Limitations of V1
-
-- **App reboot method not available** — connectivity dependency (see design decisions)
-- **Single router model** — EA6350 only; multi-model support in V3
-- **No session persistence** — conversation resets on page refresh
-- **Non-deterministic section detection** — LLM segmentation is not idempotent; ingest includes deduplication to prevent re-ingesting the same section twice
-- **No user authentication** — no login, session tracking, or audit log
-- **No escalation path** — after 3 inconclusive qualify exchanges, conversation continues indefinitely (V3 adds human escalation)
-
-## Testing
-
-```bash
-# Run all tests
-pytest agents/v1/ -v
-
-# Key test files:
-# - test_graph.py: Graph construction and routing
-# - test_scenarios.py: All 8 Definition of Done scenarios
-# - test_app_manual.py: Streamlit app smoke tests
+**Example (GUIDE_REBOOT):**
+```
+User: "My WiFi is down"
+Retrieved context: "Step 1: Unplug router from power... Step 2: Wait 30 seconds..."
+Prompt: "The user's router is offline. Use the following steps to guide them through a physical reboot. Return JSON with 'step_number', 'action', and 'next_step_prompt'."
+Output: {"step_number": 1, "action": "Unplug router", "next_step_prompt": "..."}
 ```
 
-See root `README.md` for full testing strategy.
+## Test Files
 
-## Debugging
+- **`test_graph.py`** — Graph compilation, node routing, state transitions
+- **`test_scenarios.py`** — 8 end-to-end scenarios (single device, ISP outage, success, failure, etc.)
+- **`test_app_manual.py`** — Streamlit app smoke tests (no crash, basic flow)
 
-- **RAG issues:** Run `python shared/rag/verify_retrieval.py --version v1`
-- **Graph routing:** Inspect state in `test_graph.py` output
-- **Streamlit errors:** Use `streamlit run --logger.level=debug agents/v1/app.py`
-- **Missing Chroma store:** Re-run `python shared/rag/ingest_v1.py`
+Run with: `pytest agents/v1/ -v` or `python agents/v1/test_graph.py`
+
+For testing strategy and verification gates, see root `README.md` "Testing Strategy".
+
+## Debugging Tips
+
+- **RAG not retrieving:** Run `python shared/rag/verify_retrieval.py --version v1` to check Chroma connectivity and sample queries
+- **Graph routing wrong:** Inspect state transitions in `test_graph.py` output — shows actual routing decisions at each node
+- **Streamlit crashing:** Use `streamlit run --logger.level=debug agents/v1/app.py` for verbose logs; check `.env` for OPENAI_API_KEY
+- **Missing Chroma store:** If `chroma_db/v1/` doesn't exist, re-run `python shared/rag/ingest_v1.py`
+
+See `CLAUDE.md` for deeper debugging guidance (RAG metadata filters, lazy loading, message reducer details).

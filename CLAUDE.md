@@ -53,7 +53,7 @@ The agent is a directed graph with 7 nodes and conditional routing:
 
 ### Setup
 ```bash
-# 1. Copy environment (edit with your OpenAI key)
+# 1. Copy environment (edit with your OpenAI key, Langhmith)
 cp .env.example .env
 
 # 2. Install dependencies

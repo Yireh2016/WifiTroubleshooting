@@ -574,7 +574,7 @@ sections = json.loads(response.content)
 | **sys.path for imports** | In `agents/vN/app.py`, add: `sys.path.insert(0, str(Path(__file__).resolve().parents[2]))` to import from `shared/` |
 | **MemorySaver thread_id** | Pass `config={"configurable": {"thread_id": uuid}}` to every graph invoke for conversation continuity |
 | **Pydantic v2 validation** | State schema validates on every transition — catches routing bugs early |
-| **LangSmith tracing (V2)** | Set env vars `LANGCHAIN_TRACING_V2=true` and `LANGCHAIN_API_KEY=<key>`. Zero code changes needed |
+| **LangSmith tracing (V2)** | Set env vars `LANGCHAIN_TRACING=true` and `LANGCHAIN_API_KEY=<key>`. Zero code changes needed |
 
 ---
 
@@ -654,7 +654,7 @@ streamlit run agents/v1/app.py
 OPENAI_API_KEY=sk-...
 
 # LangSmith (optional, V2+)
-LANGCHAIN_TRACING_V2=false
+LANGCHAIN_TRACING=false
 LANGCHAIN_API_KEY=
 
 # LangChain debugging

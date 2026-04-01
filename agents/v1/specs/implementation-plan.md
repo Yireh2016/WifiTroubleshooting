@@ -224,7 +224,7 @@ mkdir -p chroma_db/v1
 OPENAI_API_KEY=sk-...
 
 # LangSmith (optional, V2+)
-LANGCHAIN_TRACING_V2=false
+LANGCHAIN_TRACING=false
 LANGCHAIN_API_KEY=
 ```
 
@@ -1003,7 +1003,7 @@ def compile_graph():
   - **Changes**: Enable LangSmith tracing for full pipeline observability
 
 ```
-LANGCHAIN_TRACING_V2=true
+LANGCHAIN_TRACING=true
 LANGSMITH_TRACING=true
 LANGSMITH_ENDPOINT=https://api.smith.langchain.com
 LANGSMITH_API_KEY=<your-key>
