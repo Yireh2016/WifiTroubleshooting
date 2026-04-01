@@ -68,7 +68,7 @@ source venv/bin/activate
 cp .env.example .env
 
 # 2. Install dependencies
-pip install -r agents/v1/requirements.txt
+pip install -r requirements.txt
 
 # 3. Ingest PDF into Chroma vector store (one-time)
 python shared/rag/ingest_v1.py
