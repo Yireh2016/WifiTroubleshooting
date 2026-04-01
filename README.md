@@ -55,32 +55,38 @@
 
 ## Quickstart
 
-**Prerequisites:** Python 3.9+, OpenAI API key (sk-...)
+**Prerequisites:** Python 3.9+, OpenAI API key (sk-...), Langchain API key (optional)
+
+> **Note on `python`/`python3` and `pip`/`pip3`:** The commands below use `python` and `pip`. Depending on your system setup and shell aliases, you may need to use `python` or `pip` instead. Both refer to the same tool — choose whichever command resolves correctly on your system. To check which one you have, run `python3 --version` or `python --version`.
 
 ```bash
-# 1. Clone and set up
+# 1. Navigate to repo and create a virtual environment
 cd WifiTroubleshooting
+python -m venv venv
+source venv/bin/activate
+# On Windows, use: venv\Scripts\activate
+
+# 2. Copy and configure environment
 cp .env.example .env
 # Edit .env: add your OPENAI_API_KEY
 # LangSmith (optional)
 # LANGCHAIN_TRACING=true
 # LANGSMITH_ENDPOINT=https://<instance>.langchain.com
-# LANGCHAIN_API_KEY= <your_key>
-# LANGSMITH_PROJECT= <your_project>
+# LANGCHAIN_API_KEY=<your_key>
+# LANGSMITH_PROJECT=<your_project>
 
-# 2. Install V1 dependencies
+# 3. Install V1 dependencies
 pip install -r agents/v1/requirements.txt
 
-# 3. Ingest the PDF into Chroma (one-time)
+# 4. Ingest the PDF into Chroma (one-time)
 python shared/rag/ingest_v1.py
 
-# 4. Verify RAG retrieval (optional)
+# 5. Verify RAG retrieval (optional)
 python shared/rag/verify_retrieval.py --version v1
 chroma run --path ./chroma_db/v1 # connect using chroma explorer at http://localhost:8000
 
-# 5. Run the agent
+# 6. Run the agent
 streamlit run agents/v1/app.py
-
 ```
 
 Then visit `http://localhost:8501` and start a conversation:
@@ -91,6 +97,13 @@ Then visit `http://localhost:8501` and start a conversation:
 > **Agent:** "Got it. Have you rebooted the router recently?"
 > ... [after qualification] ...
 > **Agent:** "Let's reboot your router. First, unplug it from power..."
+
+**Virtual Environment Reminder:** Each time you open a new terminal, activate the virtual environment before running the app or tests:
+```bash
+source venv/bin/activate  # macOS/Linux
+# or
+venv\Scripts\activate     # Windows
+```
 
 ## Architecture Overview
 

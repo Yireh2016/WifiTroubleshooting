@@ -55,7 +55,15 @@ The agent is a directed graph with 7 nodes and conditional routing:
 ## Running the Project
 
 ### Setup
+
+> **Note on `python`/`python3` and `pip`/`pip3`:** The commands below use `python` and `pip`. Depending on your system and shell aliases, you may need to substitute `python` for `python3` and/or `pip` for `pip3`. Both refer to the same tool — use whichever resolves correctly on your system.
+
 ```bash
+# 0. Create and activate a virtual environment (recommended to avoid PEP 668 issues)
+python -m venv venv
+source venv/bin/activate
+# On Windows: venv\Scripts\activate
+
 # 1. Copy environment (edit with your OpenAI key and LangSmith token if using tracing)
 cp .env.example .env
 

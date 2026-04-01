@@ -39,6 +39,8 @@ class ConversationState(TypedDict):
 
 From repo root:
 
+> **Note on `python`/`python3` and `pip`/`pip3`:** The commands below use `python` and `pip`. Depending on your system setup and shell aliases, you may need to use `python` or `pip` instead. Both refer to the same tool — choose whichever command resolves correctly on your system. To check which one you have, run `python3 --version` or `python --version`.
+
 ```bash
 cp .env.example .env       # Edit with OPENAI_API_KEY
 pip install -r agents/v1/requirements.txt
