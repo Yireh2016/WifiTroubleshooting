@@ -4,19 +4,23 @@
 
 **WifiTroubleshooting** is a conversational AI that guides users through WiFi troubleshooting for their home routers, using manufacturer manuals as the source of truth. It qualifies whether an issue is appropriate for a physical reboot through guided questions, retrieves step-by-step reboot instructions via RAG (Retrieval-Augmented Generation), and walks users through each step with confirmations. The project is built as a versioned agent architecture with three independently runnable agents (V1, V2, V3) of increasing capability, allowing each version to be frozen and evaluated separately.
 
+**Current Status:** V1 MVP complete (Streamlit UI + agent logic). V2 multi-router design in development. V3 production readiness planned.
+
 ## How to Navigate the Repo
 
 ### Core Agents
 
-- **`agents/v1/`** — MVP: Physical reboot guidance for Linksys EA6350. Start here.
+- **`agents/v1/`** — MVP: Physical reboot guidance for Linksys EA6350. Frozen at submission.
   - `app.py` — Streamlit UI
   - `graph.py` — LangGraph state machine (7 nodes, conditional routing)
   - `nodes.py` — Node functions (qualify, guide_reboot, check_resolution, etc.)
-  - `requirements.txt` — V1 dependencies
 
-- **`agents/v2/`** — [Future] Enhanced experience: app/browser reboot with connectivity gating, multi-language support, literacy detection. Will not modify V1.
+- **`agents/v2/`** — Enhanced experience: Multi-router support (EA6350, Archer C1200, WNR854T), app/browser reboot with connectivity gating, conversation mode selection, LLM-driven literacy detection. Independent from V1.
+  - `app.py` — Streamlit UI with mode selector
+  - `graph.py` — LangGraph state machine (9 nodes, LLM-driven routing)
+  - `nodes.py` — Node functions + routing logic
 
-- **`agents/v3/`** — [Future] Production readiness: evaluation pipeline, guardrails, multi-router support, human escalation path. Will not modify V1 or V2.
+- **`agents/v3/`** — [Future] Production readiness: evaluation pipeline, guardrails, structured logging, human escalation path. Will not modify V1 or V2.
 
 ### Shared Components
 
@@ -58,6 +62,8 @@
 
 > **Note on `python`/`python3` and `pip`/`pip3`:** The commands below use `python` and `pip`. Depending on your system setup and shell aliases, you may need to use `python` or `pip` instead. Both refer to the same tool — choose whichever command resolves correctly on your system. To check which one you have, run `python3 --version` or `python --version`.
 
+### Setup
+
 ```bash
 # 1. Navigate to repo and create a virtual environment
 cd WifiTroubleshooting
@@ -74,17 +80,28 @@ cp .env.example .env
 # LANGCHAIN_API_KEY=<your_key>
 # LANGSMITH_PROJECT=<your_project>
 
-# 3. Install V1 dependencies
-pip install -r agents/v1/requirements.txt
+# 3. Install all dependencies (consolidated for V1 & V2)
+pip install -r requirements.txt
+```
 
-# 4. Ingest the PDF into Chroma (one-time)
+**Virtual Environment Reminder:** Each time you open a new terminal, activate the virtual environment before running the app or tests:
+```bash
+source venv/bin/activate  # macOS/Linux
+# or
+venv\Scripts\activate     # Windows
+```
+
+### Running V1 (MVP)
+
+```bash
+# 1. Ingest the PDF into Chroma (one-time)
 python shared/rag/ingest_v1.py
 
-# 5. Verify RAG retrieval (optional)
+# 2. Verify RAG retrieval (optional)
 python shared/rag/verify_retrieval.py --version v1
 chroma run --path ./chroma_db/v1 # connect using chroma explorer at http://localhost:8000
 
-# 6. Run the agent
+# 3. Run the agent
 streamlit run agents/v1/app.py
 ```
 
@@ -97,17 +114,23 @@ Then visit `http://localhost:8501` and start a conversation:
 > ... [after qualification] ...
 > **Agent:** "Let's reboot your router. First, unplug it from power..."
 
-**Virtual Environment Reminder:** Each time you open a new terminal, activate the virtual environment before running the app or tests:
+### Running V2 (Enhanced)
+
 ```bash
-source venv/bin/activate  # macOS/Linux
-# or
-venv\Scripts\activate     # Windows
+# 1. Ingest PDFs into Chroma (one-time, creates chroma_db/v2/)
+python shared/rag/ingest_v2.py --pdf shared/data/user_guide_EA6350.pdf --model EA6350 --brand Linksys
+python shared/rag/ingest_v2.py --pdf shared/data/Archer_C1200\(US\)_V1_UG.pdf --model "Archer C1200" --brand "TP-Link"
+python shared/rag/ingest_v2.py --pdf shared/data/wnr854t_setup_manual.pdf --model WNR854T --brand Netgear
+
+# 2. Run the Streamlit app
+streamlit run agents/v2/app.py
 ```
 
 ## Architecture Overview
 
 ### Multi-Agent Structure
 
+**V1 Architecture (MVP):**
 ```
 ┌─────────────────────────────────────────┐
 │         User (Streamlit UI)             │
@@ -120,7 +143,7 @@ venv\Scripts\activate     # Windows
                  │
     ┌────────────▼────────────────────────┐
     │   agents/v1/graph.py                │
-    │   (LangGraph state machine)         │
+    │   (LangGraph state machine, 7 nodes)│
     │                                     │
     │   qualify ──► reboot_appropriate?  │
     │        └─► graceful_exit           │
@@ -141,8 +164,8 @@ venv\Scripts\activate     # Windows
     │  │  └─ retriever.py          │
     │  │                           │
     │  ├─ state/state_v1.py        │
-    │  ├─ prompts/                 │
-    │  └─ data/EA6350.pdf          │
+    │  ├─ prompts/base_prompts.py  │
+    │  └─ data/user_guide_EA6350   │
     └────────────┬─────────────────┘
                  │
     ┌────────────▼──────────┐
@@ -151,23 +174,71 @@ venv\Scripts\activate     # Windows
     └───────────────────────┘
 ```
 
+**V2 Architecture (Multi-Router):**
+```
+┌─────────────────────────────────────────┐
+│    User (Streamlit UI, mode selector)   │
+└────────────────┬────────────────────────┘
+                 │
+    ┌────────────▼────────────┐
+    │   agents/v2/app.py      │ ◄── V2 independent
+    │   (entry point)         │
+    └────────────┬────────────┘
+                 │
+    ┌────────────▼──────────────────────────────┐
+    │   agents/v2/graph.py                      │
+    │   (LangGraph state machine, 9 nodes)      │
+    │                                           │
+    │   welcome ──► discover_model (3 retries) │
+    │        └─► qualify (manual-aware)        │
+    │        └─► select_reboot_method          │
+    │        └─► guide_reboot ──► retrieval    │
+    │        └─► check_resolution              │
+    │        └─► close_success / apologize     │
+    └────────────┬─────────────────────────────┘
+                 │
+    ┌────────────▼────────────────────────┐
+    │  shared/ (reused by both agents)    │
+    │                                     │
+    │  ├─ rag/                            │
+    │  │  ├─ ingest_v1.py                 │
+    │  │  ├─ ingest_v2.py (langdetect)   │
+    │  │  └─ retriever.py                 │
+    │  │                                  │
+    │  ├─ state/state_v1.py, state_v2.py │
+    │  ├─ prompts/base_prompts.py,        │
+    │  │          v2_prompts.py           │
+    │  └─ data/ (EA6350, Archer, Netgear)│
+    └────────────┬────────────────────────┘
+                 │
+    ┌────────────▼──────────────┐
+    │  chroma_db/v1/            │ ◄── V1 only
+    │  chroma_db/v2/            │ ◄── V2 multi-model
+    │  (vector stores)          │
+    └───────────────────────────┘
+```
+
 ### Shared Module Dependencies
 
 | Module | Purpose | Used By |
 |--------|---------|---------|
-| `shared/rag/ingest_v1.py` | Ingest pipeline: PDF → sections → embeddings | `shared/rag/retriever.py` |
-| `shared/rag/retriever.py` | Metadata-filtered retrieval from Chroma | `agents/v1/nodes.py` (GUIDE_REBOOT) |
-| `shared/state/state_v1.py` | Pydantic state schema for agent | `agents/v1/graph.py`, `agents/v1/nodes.py` |
-| `shared/prompts/` | Prompt templates (JSON-formatted) | `agents/v1/nodes.py` |
-| `shared/data/` | PDFs (source of truth) | `shared/rag/ingest_v1.py` |
+| `shared/rag/ingest_v1.py` | Ingest pipeline (V1): PDF → sections → embeddings | `shared/rag/retriever.py` (V1) |
+| `shared/rag/ingest_v2.py` | Ingest pipeline (V2): PDF → per-page language detection → sections → embeddings | `shared/rag/retriever.py` (V2) |
+| `shared/rag/retriever.py` | Metadata-filtered retrieval from Chroma | `agents/v1/nodes.py` (GUIDE_REBOOT), `agents/v2/nodes.py` |
+| `shared/state/state_v1.py` | Pydantic state schema for V1 agent | `agents/v1/graph.py`, `agents/v1/nodes.py` |
+| `shared/state/state_v2.py` | Pydantic state schema for V2 agent | `agents/v2/graph.py`, `agents/v2/nodes.py` |
+| `shared/prompts/base_prompts.py` | V1 prompt templates (JSON-formatted) | `agents/v1/nodes.py` |
+| `shared/prompts/v2_prompts.py` | V2 prompt templates (JSON-formatted, mode-aware) | `agents/v2/nodes.py` |
+| `shared/data/` | PDFs (source of truth) | `shared/rag/ingest_v1.py`, `shared/rag/ingest_v2.py` |
 
 ### Data Flow: RAG Pipeline
 
+**V1 Pipeline:**
 ```
 PDF (EA6350 manual, pages 0–17)
   │
   ▼ [ingest_v1.py]
-Language filter (English only)
+Language filter (English only, deterministic page range)
   │
   ▼
 LLM-based section detection
@@ -182,6 +253,30 @@ Chroma vector store (chroma_db/v1/)
   │
   └─ On query (GUIDE_REBOOT node):
      1. Retrieve: "how to reboot router" → filtered by EA6350 + English + troubleshooting
+     2. Cache in state["rag_context"]
+     3. Inject into prompt for guide_reboot and check_resolution nodes
+```
+
+**V2 Pipeline (Multi-Model):**
+```
+PDFs (EA6350, Archer C1200, WNR854T manuals)
+  │
+  ▼ [ingest_v2.py --pdf --model --brand]
+Per-page language detection (langdetect, dynamic)
+  │
+  ▼
+LLM-based section detection
+  Sections: [intro, setup, troubleshooting, ..., faq] (canonical taxonomy)
+  │
+  ▼
+Per-section embeddings (OpenAI text-embedding-3-small)
+  │
+  ▼
+Single Chroma vector store (chroma_db/v2/)
+  ├─ Metadata: {"model_name": "EA6350|ARCHER_C1200|WNR854T", "brand": "Linksys|TP-Link|Netgear", "language": "en", "section_tag": "troubleshooting"}
+  │
+  └─ On query (GUIDE_REBOOT node):
+     1. Retrieve: "how to reboot router" → filtered by user's selected model + English + troubleshooting
      2. Cache in state["rag_context"]
      3. Inject into prompt for guide_reboot and check_resolution nodes
 ```
@@ -218,35 +313,46 @@ V1 and V2 use different ingest pipelines (page range vs per-page language detect
 
 ## Known Limitations
 
-- **App reboot method not in V1** — connectivity dependency (see design decisions). V2 adds with proper gating.
-- **Single router model** — EA6350 only in V1/V2. V3 adds multi-model support.
+**V1 Limitations:**
+- **Physical reboot only** — App reboot method not supported (connectivity dependency). V2 adds with proper gating.
+- **Single router model** — EA6350 only. V2 adds multi-model support.
+- **No conversation mode selection** — Single patient, step-by-step mode. V2 adds mode selector.
 - **No session persistence** — conversation resets on page refresh. No database backend.
 - **No authentication** — no login, user tracking, or audit log.
 - **Non-deterministic section detection** — LLM segmentation isn't idempotent. Ingest includes deduplication to prevent duplicate sections.
 - **No escalation path** — after 3 inconclusive qualify exchanges, conversation continues. V3 adds human escalation.
 - **No structured logging** — no per-conversation logging or analytics. V3 adds logging infrastructure.
 
+**V2 Limitations:**
+- **English only** — langdetect filters to English pages; other languages are excluded. V3 adds multi-language support.
+- **No local admin edge case** — Deferred to V3 when multi-user scenarios are needed.
+- **No evaluation pipeline** — Deferred to V3 (would include Langsmith golden dataset, evaluators, experiments).
+- **Single language in prompts** — No multi-language prompt support yet.
+
 ## Future Work
 
-### V2 — Enhanced Experience (In Design)
-
-- **Multi-router support:** Archer C1200, Netgear WNR854T (added to shared/data/)
-- **App/browser reboot method** with connectivity-aware gating (only offer if router has WAN)
-- **Multi-language support** via per-page language detection (`langdetect`)
-- **Literacy detection** from opening message (self-serve vs agent-assisted mode)
-- **Router discovery flow** via LLM-driven routing decisions
-- **LangSmith tracing** for observability and debugging
-- Separate `chroma_db/v2/` store with metadata-based model filtering
+### V2 — Enhanced Experience (In Development)
 
 See `agents/v2/spec.md`, `implementation-plan.md`, and `research.md` for full design details.
+
+Completed features:
+- ✅ Multi-router support (EA6350, Archer C1200, Netgear WNR854T)
+- ✅ Router discovery flow with 3-retry gate
+- ✅ Conversation mode selection (self-serve vs agent-assisted)
+- ✅ LLM-driven literacy detection
+- ✅ Manual-aware qualification
+- ✅ App/browser reboot method selection with connectivity awareness
+- ✅ Per-page language detection (`langdetect`)
+- ✅ Multi-model Chroma store with metadata filtering
 
 ### V3 — Production Readiness
 
 - **Evaluation pipeline** (`agents/v3/eval/`) with golden dataset and LLM-as-judge scoring
 - **Guardrails:** scope enforcement, hallucination prevention, prompt injection defense
-- **Multi-router support** with CLI-driven ingest for new models
 - **Structured logging** per conversation (request ID, node execution, LLM payloads, latencies)
 - **Human escalation path** after N inconclusive exchanges
+- **Local admin detection and handling**
+- **Multi-language prompt support**
 
 See `agents/v3/README.md` (future) for full scope.
 
@@ -257,6 +363,86 @@ See `agents/v3/README.md` (future) for full scope.
 - Fine-tuning on resolved conversation dataset
 - Live ISP outage API integration (skip reboot when outage confirmed)
 - Tenant isolation for multi-customer SaaS deployments
+
+## V2 Implementation Details
+
+### What's New in V2
+
+- **Multi-router model support** — Single Chroma collection with metadata-based filtering for Linksys EA6350, TP-Link Archer C1200, Netgear WNR854T
+- **Router model discovery** — 3-retry gate with available model guidance before proceeding
+- **Conversation mode selector** — User chooses self-serve (patient, step-by-step) or agent-assisted (concise, technical)
+- **LLM-driven literacy detection** — Self-serve mode analyzes user vocabulary dynamically (no static mapping)
+- **Manual-aware qualifier** — Retrieves manual sections before asking qualification questions
+- **Reboot method selection** — LLM decides physical vs app reboot based on connectivity context
+- **Generic reboot guidance** — Model-agnostic instructions (not Linksys-specific)
+
+### V2 State Machine (9 Nodes)
+
+```
+[WELCOME] → asks for router model
+[DISCOVER_MODEL] → retries up to 3 times if model not found
+[UNSUPPORTED_MODEL_EXIT] → exits after 3 failed attempts
+[QUALIFY] → retrieves manual context, asks qualifying questions
+[SELECT_REBOOT_METHOD] → LLM decides physical vs app based on connectivity
+[RETRIEVAL] → fetches reboot steps from Chroma with model filter
+[GUIDE_REBOOT] → walks user through steps one at a time
+[CHECK_RESOLUTION] → asks if issue is resolved
+[CLOSE_SUCCESS] / [APOLOGIZE_AND_EXIT] / [GRACEFUL_EXIT] → terminal nodes
+```
+
+### V2 State Schema (`shared/state/state_v2.py`)
+
+Extends V1 `ConversationState` with:
+- `router_model` — Normalized model name (e.g., "EA6350", "ARCHER C1200")
+- `router_model_attempts` — Counter (0-3) for discovery gate
+- `manual_context` — Cached manual sections retrieved during qualify
+- `reboot_method` — Selected method ("physical" or "app")
+- `conversation_mode` — User's choice ("self_serve" or "agent_assisted")
+- `has_internet_on_other_device` — For app reboot gating
+
+### V2 Design Decisions
+
+**Single Chroma Collection with Metadata Filtering**
+V2 uses a single `chroma_db/v2/` collection shared across all models, with metadata filters (`model_name`, `brand`, `language`) for retrieval. This allows easy addition of new router models without code changes.
+
+**LLM-Driven Literacy Detection**
+Self-serve mode analyzes user vocabulary dynamically in prompts rather than using static literacy level categorization. Literacy detection is self-serve only; agent-assisted mode uses technical language throughout.
+
+**Manual-Aware Qualifier**
+The qualify node retrieves relevant manual sections before asking questions, ensuring questions are grounded in the specific router's manual and allowing the LLM to reference manual sections in responses.
+
+**App vs Physical Reboot Selection**
+V2 uses an LLM node (`select_reboot_method`) to decide between physical and app reboot. Rules:
+- **Physical** — Always available (power cord disconnect)
+- **App** — Only if user has internet on another device AND manual mentions web/app reboot
+
+### V2 vs V1 Comparison
+
+| Feature | V1 | V2 |
+|---------|----|----|
+| Router models | Linksys EA6350 only | EA6350, Archer C1200, Netgear WNR854T |
+| Model discovery | N/A | 3-retry gate with guidance |
+| Conversation mode | Single (patient, step-by-step) | User chooses self-serve or agent-assisted |
+| Literacy detection | None | Dynamic, LLM-driven (self-serve) |
+| Qualifier | Blind qualification | Manual-aware (retrieves before asking) |
+| Reboot methods | Physical only | LLM selects physical or app |
+| Chroma vectors | V1-only (page range 0-17) | V2-only (langdetect per-page) |
+| State schema | `state_v1.py` | `state_v2.py` (extends with router_model, reboot_method, etc.) |
+| Chroma store | `chroma_db/v1/` | `chroma_db/v2/` (single multi-model collection) |
+| Independence | N/A | Fully isolated — does not modify V1 |
+
+### V2 Testing
+
+```bash
+# Run all V2 tests
+pytest agents/v2/ -v
+
+# Run specific test module
+pytest agents/v2/test_nodes.py -v
+
+# Run with coverage
+pytest agents/v2/ --cov=agents.v2 --cov=shared
+```
 
 ## V1 Implementation Details
 
