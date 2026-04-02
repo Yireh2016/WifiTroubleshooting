@@ -12,7 +12,6 @@
   - `app.py` — Streamlit UI
   - `graph.py` — LangGraph state machine (7 nodes, conditional routing)
   - `nodes.py` — Node functions (qualify, guide_reboot, check_resolution, etc.)
-  - `README.md` — V1-specific docs
   - `requirements.txt` — V1 dependencies
 
 - **`agents/v2/`** — [Future] Enhanced experience: app/browser reboot with connectivity gating, multi-language support, literacy detection. Will not modify V1.
@@ -259,27 +258,77 @@ See `agents/v3/README.md` (future) for full scope.
 - Live ISP outage API integration (skip reboot when outage confirmed)
 - Tenant isolation for multi-customer SaaS deployments
 
-## Testing Strategy
+## V1 Implementation Details
 
-### Unit Tests (Phase 2–4)
+### Graph Structure & Nodes
 
-- **`shared/rag/`** — Ingest produces correct sections; retrieval returns troubleshooting content
-- **`shared/state/`** — State schema instantiation and prompt formatting
-- **`agents/v1/graph.py`** — Graph compilation, node routing, state updates
+V1's agent is a LangGraph state machine with 7 nodes:
 
-### Integration Tests (Phase 5–6)
+| Node | Input | Logic | Output |
+|------|-------|-------|--------|
+| **QUALIFY** | User message, conversation history | Ask qualification questions (all devices offline? ISP outage? already rebooted?) | `reboot_appropriate: bool` |
+| **GUIDE_REBOOT** | `reboot_appropriate=True` | Retrieve reboot steps (RAG) once, cache in state, show first step | `current_step=0`, `rag_context` |
+| **CONFIRM_STEP** | User message | Ask "did that step work?" → increment `current_step` | `current_step++` |
+| **CHECK_RESOLUTION** | After all steps | Ask "is WiFi back?" | `exit_reason: str` |
+| **CLOSE_SUCCESS** | Resolution confirmed | "Glad I could help!" | Exit gracefully |
+| **APOLOGIZE_AND_EXIT** | Resolution not confirmed | "Sorry I couldn't help, try contacting support." | Exit gracefully |
+| **GRACEFUL_EXIT** | Qualification fails | "This isn't a reboot situation — [reason]. Let me know if you need more help." | Exit gracefully |
 
-All tests in `agents/v1/test_*.py`:
+**Key routing:**
+- If `reboot_appropriate=False` → GRACEFUL_EXIT
+- If `reboot_appropriate=True` → GUIDE_REBOOT → loop CONFIRM_STEP → CHECK_RESOLUTION → CLOSE_SUCCESS or APOLOGIZE_AND_EXIT
 
-```bash
-# Run all
-pytest agents/v1/ -v
+### V1 State Schema
 
-# Key scenarios (Definition of Done):
-pytest agents/v1/test_scenarios.py -v
+V1 uses `shared/state/state_v1.py` (ConversationState):
+
+```python
+class ConversationState(BaseModel):
+    messages: Annotated[list[BaseMessage], add_messages]  # LangGraph auto-dedupes
+    reboot_appropriate: Optional[bool] = None  # Qualification result
+    issue_resolved: Optional[bool] = None
+    next_node: str = "not_started"
+    last_executed_node: str = "qualify"
+    rag_context: Optional[str] = None  # Retrieved reboot instructions (cached after first GUIDE_REBOOT)
+    exit_reason: Optional[str] = None  # Why agent exited: "single_device", "isp_outage", etc.
 ```
 
-**8 Scenarios:**
+### V1 Prompt Templates
+
+All prompts live in `shared/prompts/` and are injected with:
+- `{rag_context}` — Retrieved reboot steps from Chroma
+- `{current_step}` — Step number to show user
+- `{exit_reason}` — Reason for graceful exit
+- `{reboot_appropriate}` — True/False qualification result
+
+Each prompt must mention "JSON" in the text because nodes use `response_format={"type": "json_object"}` to force structured output.
+
+## Testing Strategy
+
+### Running Tests
+
+```bash
+# All tests
+pytest agents/v1/ -v
+
+# Specific test types
+pytest agents/v1/test_nodes.py agents/v1/test_prompts.py -v  # Unit tests only
+pytest agents/v1/test_scenarios.py -v                        # Integration tests
+pytest agents/v1/test_rag_integration.py -v                  # RAG tests
+```
+
+### Test Files
+
+| Test File | Purpose | Type |
+|-----------|---------|------|
+| `test_nodes.py` | Node logic and routing (7 nodes, 9 routing functions) | Unit |
+| `test_scenarios.py` | Conversation flows (8 scenarios) | Integration |
+| `test_rag_integration.py` | RAG pipeline (vector store, retrieval, filtering) | Integration |
+| `test_prompts.py` | Prompt templates and LLM responses | Unit |
+| `test_graph.py` | Graph structure and imports | Unit |
+
+### 8 Integration Test Scenarios
+
 1. Single device affected → graceful exit
 2. ISP outage → graceful exit
 3. Already rebooted twice → graceful exit
@@ -308,14 +357,111 @@ grep -q "^.env$" .gitignore
 grep -q "^chroma_db/$" .gitignore
 ```
 
-### Manual Verification (Definition of Done)
+## V1 Evaluation Pipeline
 
-- [ ] All 8 scenarios above produce correct outcomes
-- [ ] RAG context retrieved once on GUIDE_REBOOT entry, cached in state
-- [ ] Physical reboot guided step-by-step with observable confirmations
-- [ ] No crash on empty input, off-topic message, mid-flow interruption
-- [ ] `agents/v1/README.md` complete with all required sections
-- [ ] Global `README.md` complete with all required sections
+The V1 agent includes an automated evaluation framework using LangSmith.
+
+### Quick Start
+
+```bash
+python agents/v1/eval/run_eval_direct.py
+```
+
+This will:
+1. Load your `.env` file (LANGSMITH_API_KEY, OPENAI_API_KEY)
+2. Create/load the dataset `wifi_troubleshooting_golden_v1` in LangSmith
+3. Run all 10 golden scenarios through your agent
+4. Score with 4 evaluators:
+   - **qualification_correctness** — Did agent decide reboot correctly?
+   - **exit_reason_validity** — Did agent exit with correct reason?
+   - **response_consistency** — Is conversation coherent?
+   - **edge_case_handling** — Does agent handle unusual inputs gracefully?
+5. Send results to LangSmith
+
+**Runtime:** ~30–45 seconds
+
+### Before Running Evaluations
+
+Ensure your `.env` file has:
+```bash
+OPENAI_API_KEY=sk-...
+LANGSMITH_API_KEY=lsv2_...
+LANGSMITH_PROJECT=Project_Name  # Your project name
+```
+
+### Evaluation Files
+
+| File | Purpose |
+|------|---------|
+| `run_eval_direct.py` | **Main entry point** — Run this to execute evaluations |
+| `run_experiments.py` | **Core logic** — Dataset loading, evaluators, experiment execution |
+| `golden_scenarios.jsonl` | **Dataset** — 10 golden scenarios in LangSmith format (JSONL) |
+
+### Understanding Evaluators
+
+All evaluators compare agent output against expected results from the golden dataset:
+
+1. **qualification_correctness** — Did agent correctly decide if router reboot is needed?
+   - Score: 1.0 if match, 0.0 if mismatch
+
+2. **exit_reason_validity** — Did agent exit with the correct reason?
+   - Score: 1.0 (match), 0.5 (wrong reason), 0.0 (missing/extra)
+   - Valid reasons: `None`, `"isp_outage"`, `"single_device"`, `"out_of_scope"`
+
+3. **response_consistency** — Validates conversation coherence
+   - Score: 1.0 (coherent), 0.5 (issues)
+   - Checks: alternating user ↔ assistant, last message from assistant
+
+4. **edge_case_handling** — Robustness to unusual inputs
+   - Score: 1.0 (handled gracefully), 0.0 (crashed or incorrect)
+
+### Viewing Results in LangSmith
+
+After running evaluations:
+1. Go to https://smith.langchain.com
+2. Select your project (e.g., "Jainers_Interview")
+3. Click **Datasets & Experiments**
+4. Find **wifi_troubleshooting_golden_v1** dataset
+5. Click **Experiments** tab
+6. View results for `Jainers_Interview_v1_golden_scenarios-*`
+
+### Debugging Failing Scenarios
+
+If a scenario has low scores:
+1. Click the scenario row in LangSmith → See full trace
+2. Expand each node to see router decision, qualification logic, RAG retrieval, state transitions
+3. Identify where it fails (wrong node? incorrect state? unexpected LLM response?)
+4. Fix agent code in `agents/v1/nodes.py` or prompts
+5. Re-run: `python agents/v1/eval/run_eval_direct.py` (creates new experiment, doesn't overwrite)
+
+### Troubleshooting
+
+**Error: LANGSMITH_API_KEY not set**
+```bash
+# Add to .env
+echo "LANGSMITH_API_KEY=lsv2_..." >> .env
+python agents/v1/eval/run_eval_direct.py
+```
+
+**Error: Chroma database not found**
+```bash
+# Initialize the vector store once
+python shared/rag/ingest_v1.py
+```
+
+**Error: Module import fails**
+```bash
+# Always run from project root
+cd /Users/jainer/Documents/routeThis
+python agents/v1/eval/run_eval_direct.py
+```
+
+## V1 Debugging Tips
+
+- **RAG not retrieving:** Run `python shared/rag/verify_retrieval.py --version v1` to check Chroma connectivity
+- **Graph routing wrong:** Inspect state transitions in `test_graph.py` output — shows actual routing decisions
+- **Streamlit crashing:** Use `streamlit run --logger.level=debug agents/v1/app.py` for verbose logs
+- **Missing Chroma store:** If `chroma_db/v1/` doesn't exist, re-run `python shared/rag/ingest_v1.py`
 
 ## Development Workflow
 

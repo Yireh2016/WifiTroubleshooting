@@ -7,7 +7,7 @@ from langgraph.graph import END
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from langchain_openai import ChatOpenAI
-from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
+from langchain_core.messages import AIMessage, SystemMessage
 from shared.state.state_v1 import ConversationState
 from shared.prompts.base_prompts import (
     QUALIFY_PROMPT, GUIDE_REBOOT_PROMPT,
