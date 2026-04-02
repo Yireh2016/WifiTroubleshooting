@@ -7,7 +7,7 @@ from langgraph.graph import StateGraph, START, END
 from langgraph.checkpoint.memory import MemorySaver
 from shared.state.state_v1 import ConversationState
 from agents.v1.nodes import (
-    qualify, graceful_exit, guide_reboot,retrieval,
+    qualify, graceful_exit, guide_reboot, retrieval,
     check_resolution, close_success, apologize_and_exit,
     route_entry, route_after_qualify, route_after_guide, route_after_check,
 )

@@ -7,7 +7,7 @@ from langgraph.graph import END
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from langchain_openai import ChatOpenAI
-from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
+from langchain_core.messages import AIMessage, SystemMessage
 from shared.state.state_v1 import ConversationState
 from shared.prompts.base_prompts import (
     QUALIFY_PROMPT, GUIDE_REBOOT_PROMPT,
@@ -52,6 +52,7 @@ def _call_llm(messages: list, prompt: str) -> dict:
 # --- Node Functions ---
 
 def qualify(state: ConversationState) -> dict:
+    """Qualify whether reboot is needed."""
     result = _call_llm(state.messages, QUALIFY_PROMPT)
     updates = {"messages": [AIMessage(content=result["reply"])]}
 
@@ -93,6 +94,7 @@ def retrieval(state: ConversationState) ->dict:
     }
 
 def guide_reboot(state: ConversationState) -> dict:
+    """Guide user through reboot steps."""
     prompt = GUIDE_REBOOT_PROMPT.format(
         rag_context=state.rag_context,
     )
@@ -108,16 +110,20 @@ def guide_reboot(state: ConversationState) -> dict:
     return updates
 
 def check_resolution(state: ConversationState) -> dict:
+    """Check if issue is resolved."""
     result = _call_llm(state.messages, CHECK_RESOLUTION_PROMPT)
+
     updates = {
         "messages": [AIMessage(content=result["reply"])],
         "last_executed_node": "check_resolution",
     }
+
+    # Track resolution status
     if result.get("resolved") is True:
         updates["issue_resolved"] = True
     elif result.get("resolved") is False:
         updates["issue_resolved"] = False
-    # None → keep asking
+
     return updates
 
 def close_success(state: ConversationState) -> dict:
